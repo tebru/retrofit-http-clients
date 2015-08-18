@@ -23,7 +23,7 @@ class ClientProvider
     /**
      * The http client, currently only supports Guzzle
      *
-     * @var mixed
+     * @var HttpClientAdapter
      */
     private $httpClient;
 
@@ -36,12 +36,16 @@ class ClientProvider
      */
     public function setClient($client)
     {
+        if ($client instanceof HttpClientAdapter) {
+            $this->httpClient = $client;
+        }
+
         if (!$client instanceof GuzzleClientInterface)
         {
             throw new RetrofitException(sprintf('Currently, the only supported http clients are \GuzzleHttp\ClientInterface, found (%s)', get_class($client)));
         }
 
-        $this->httpClient = $client;
+        $this->httpClient = $this->getClientAdapter($client);
 
         return $this;
     }
@@ -57,7 +61,7 @@ class ClientProvider
             return $this->getClientAdapter();
         }
 
-        return $this->getClientAdapter($this->httpClient);
+        return $this->httpClient;
     }
 
     /**

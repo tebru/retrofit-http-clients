@@ -17,7 +17,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Tebru\\Retrofit\\HttpClient": "src/"
+            "Tebru\\Retrofit\\HttpClient\\": "src/"
         }
     }
 }

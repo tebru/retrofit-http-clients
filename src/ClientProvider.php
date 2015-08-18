@@ -38,6 +38,8 @@ class ClientProvider
     {
         if ($client instanceof HttpClientAdapter) {
             $this->httpClient = $client;
+
+            return $this;
         }
 
         if (!$client instanceof GuzzleClientInterface)

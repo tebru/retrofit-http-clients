@@ -1,0 +1,23 @@
+{
+    "name": "tebru/retrofit-http-clients",
+    "description": "Retrofit for PHP - A PHP REST client.",
+    "require": {
+        "php": ">= 5.4"
+    },
+    "require-dev": {
+        "tebru/retrofit-php": "dev-master",
+        "guzzlehttp/guzzle": "^6.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Nate Brunette",
+            "email": "n@tebru.net"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Tebru\\Retrofit\\HttpClient": "src/"
+        }
+    }
+}

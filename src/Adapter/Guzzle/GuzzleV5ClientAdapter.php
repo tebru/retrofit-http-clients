@@ -8,6 +8,7 @@ namespace Tebru\Retrofit\HttpClient\Adapter\Guzzle;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Message\Request;
+use GuzzleHttp\Stream\Stream;
 use Tebru;
 use Tebru\Retrofit\Adapter\Http\Response;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
@@ -50,6 +51,10 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
      */
     public function send($method, $uri, array $headers = [], $body = null)
     {
+        if (null !== $body) {
+            $body = Stream::factory();
+        }
+        
         $response = $this->client->send(new Request($method, $uri, $headers, $body));
 
         return new Response((string)$response->getBody());

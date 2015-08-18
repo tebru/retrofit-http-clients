@@ -73,11 +73,12 @@ class ClientProvider
      *
      * @param mixed|null $client
      * @return HttpClientAdapter
+     * @throws RetrofitException
      */
     private function getClientAdapter($client = null)
     {
         if (!interface_exists('GuzzleHttp\ClientInterface')) {
-            return new RetrofitException('It appears you do not have an http client installed.  Please install guzzlehttp/guzzle.');
+            throw new RetrofitException('It appears you do not have an http client installed.  Please install guzzlehttp/guzzle.');
         }
 
         $version = (int)GuzzleClientInterface::VERSION;

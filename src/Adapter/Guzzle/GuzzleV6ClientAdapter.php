@@ -8,8 +8,8 @@ namespace Tebru\Retrofit\HttpClient\Adapter\Guzzle;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Tebru;
-use Tebru\Retrofit\Adapter\Http\Response;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
 
 /**
@@ -50,8 +50,6 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
      */
     public function send($method, $uri, array $headers = [], $body = null)
     {
-        $response = $this->client->send(new Request($method, $uri, $headers, $body));
-
-        return new Response((string)$response->getBody());
+        return $this->client->send(new Request($method, $uri, $headers, $body));
     }
 }

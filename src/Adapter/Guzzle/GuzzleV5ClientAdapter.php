@@ -52,7 +52,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     public function send($method, $uri, array $headers = [], $body = null)
     {
         if (null !== $body) {
-            $body = Stream::factory();
+            $body = Stream::factory($body);
         }
 
         $response = $this->client->send(new Request($method, $uri, $headers, $body));

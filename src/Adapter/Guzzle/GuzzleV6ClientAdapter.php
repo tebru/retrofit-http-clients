@@ -6,12 +6,16 @@
 
 namespace Tebru\Retrofit\HttpClient\Adapter\Guzzle;
 
+use Exception;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Tebru;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
+use Tebru\Retrofit\Exception\RequestException;
 use Tebru\Retrofit\Http\Callback;
 
 /**
@@ -63,16 +67,32 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
     /**
      * Send asynchronous guzzle request
      *
-     * @param Request $request
+     * @param RequestInterface $request
      * @param \Tebru\Retrofit\Http\Callback $callback
      * @return null
      */
-    public function sendAsync(Request $request, Callback $callback)
+    public function sendAsync(RequestInterface $request, Callback $callback)
     {
         $this->promises[] = $this->client
             ->sendAsync($request)
-            ->then($callback->success(), $callback->failure())
-        ;
+            ->then(
+                function (ResponseInterface $response) use ($callback) {
+                    $callback->onResponse($response);
+                },
+                function (Exception $exception) use ($callback) {
+                    /** @var \GuzzleHttp\Exception\RequestException $exception */
+                    $requestException = new RequestException(
+                        $exception->getMessage(),
+                        $exception->getCode(),
+                        $exception->getPrevious(),
+                        $exception->getRequest(),
+                        $exception->getResponse(),
+                        $exception->getHandlerContext()
+                    );
+
+                    $callback->onFailure($requestException);
+                }
+            );
     }
 
     /**

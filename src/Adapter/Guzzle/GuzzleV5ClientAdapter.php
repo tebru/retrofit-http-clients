@@ -6,16 +6,18 @@
 
 namespace Tebru\Retrofit\HttpClient\Adapter\Guzzle;
 
+use Exception;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response as Psr7Response;
-use GuzzleHttp\Psr7\Request as Psr7Request;
 use GuzzleHttp\Ring\Future\FutureInterface;
 use GuzzleHttp\Stream\Stream;
+use Psr\Http\Message\RequestInterface;
 use Tebru;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
+use Tebru\Retrofit\Exception\RequestException;
 use Tebru\Retrofit\Http\Callback;
 
 /**
@@ -79,11 +81,11 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     /**
      * Send asynchronous guzzle request
      *
-     * @param Psr7Request $request
+     * @param RequestInterface $request
      * @param \Tebru\Retrofit\Http\Callback $callback
      * @return null
      */
-    public function sendAsync(Psr7Request $request, Callback $callback)
+    public function sendAsync(RequestInterface $request, Callback $callback)
     {
         $request = new Request(
             $request->getMethod(),
@@ -97,17 +99,34 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
         $response = $this->client->send($request);
 
         $this->promises[] = $response
-            ->then(function (ResponseInterface $response) {
-                return new Psr7Response(
-                    $response->getStatusCode(),
-                    $response->getHeaders(),
-                    $response->getBody(),
-                    $response->getProtocolVersion(),
-                    $response->getReasonPhrase()
-                );
-            })
-            ->then($callback->success(), $callback->failure())
-        ;
+            ->then(
+                function (ResponseInterface $response) {
+                    return new Psr7Response(
+                        $response->getStatusCode(),
+                        $response->getHeaders(),
+                        $response->getBody(),
+                        $response->getProtocolVersion(),
+                        $response->getReasonPhrase()
+                    );
+                },
+                function (Exception $exception) use ($callback) {
+                    /** @var \GuzzleHttp\Exception\RequestException $exception */
+                    $requestException = new RequestException(
+                        $exception->getMessage(),
+                        $exception->getCode(),
+                        $exception->getPrevious(),
+                        $exception->getRequest(),
+                        $exception->getResponse()
+                    );
+
+                    $callback->onFailure($requestException);
+                }
+            )
+            ->then(
+                function (Psr7Response $response) use ($callback) {
+                    $callback->onResponse($response);
+                }
+            );
     }
 
     /**

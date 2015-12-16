@@ -67,6 +67,11 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
             $body = Stream::factory($body);
         }
 
+        // Fixes an issue with the host getting applied twice
+        if (isset($headers['Host'])) {
+            unset($headers['Host']);
+        }
+
         $response = $this->client->send(new Request($method, $uri, $headers, $body));
 
         return new Psr7Response(

@@ -139,7 +139,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     private function createRequest(RequestInterface $request, $async = false)
     {
         $body = Stream::factory($request->getBody());
-        $uri = rawurldecode((string)$request->getUri());
+        $uri = (string)$request->getUri();
         $headers = $request->getHeaders();
 
         // fixes issue with host getting applied twice

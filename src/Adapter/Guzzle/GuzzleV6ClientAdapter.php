@@ -9,7 +9,6 @@ namespace Tebru\Retrofit\HttpClient\Adapter\Guzzle;
 use Exception;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -53,15 +52,12 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
     /**
      * Make a request
      *
-     * @param string $method
-     * @param string $uri
-     * @param array $headers
-     * @param string $body
+     * @param RequestInterface $request
      * @return Response
      */
-    public function send($method, $uri, array $headers = [], $body = null)
+    public function send(RequestInterface $request)
     {
-        return $this->client->send(new Request($method, $uri, $headers, $body));
+        return $this->client->send($request);
     }
 
     /**

@@ -55,24 +55,13 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     /**
      * Make a request
      *
-     * @param string $method
-     * @param string $uri
-     * @param array $headers
-     * @param string $body
+     * @param RequestInterface $request
      * @return Psr7Response
      */
-    public function send($method, $uri, array $headers = [], $body = null)
+    public function send(RequestInterface $request)
     {
-        if (null !== $body) {
-            $body = Stream::factory($body);
-        }
-
-        // Fixes an issue with the host getting applied twice
-        if (isset($headers['Host'])) {
-            unset($headers['Host']);
-        }
-
-        $response = $this->client->send(new Request($method, $uri, $headers, $body));
+        $request = $this->createRequest($request);
+        $response = $this->client->send($request);
 
         return new Psr7Response(
             $response->getStatusCode(),
@@ -92,13 +81,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
      */
     public function sendAsync(RequestInterface $request, Callback $callback)
     {
-        $request = new Request(
-            $request->getMethod(),
-            (string) $request->getUri(),
-            $request->getHeaders(),
-            $request->getBody(),
-            ['future' => true]
-        );
+        $request = $this->createRequest($request, true);
 
         /** @var FutureInterface $response */
         $response = $this->client->send($request);
@@ -144,5 +127,28 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
         foreach ($this->promises as $promise) {
             $promise->wait();
         }
+    }
+
+    /**
+     * Create a Guzzle5 request object
+     *
+     * @param RequestInterface $request
+     * @param bool $async
+     * @return Request
+     */
+    private function createRequest(RequestInterface $request, $async = false)
+    {
+        $body = Stream::factory($request->getBody());
+        $uri = rawurldecode((string)$request->getUri());
+        $headers = $request->getHeaders();
+
+        // fixes issue with host getting applied twice
+        if (isset($headers['host'])) {
+            unset($headers['host']);
+        }
+
+        $options = ($async) ? ['future' => true] : [];
+
+        return new Request($request->getMethod(), $uri, $headers, $body, $options);
     }
 }

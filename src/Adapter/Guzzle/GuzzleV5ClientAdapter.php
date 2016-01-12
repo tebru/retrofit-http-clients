@@ -143,8 +143,8 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
         $headers = $request->getHeaders();
 
         // fixes issue with host getting applied twice
-        if (isset($headers['host'])) {
-            unset($headers['host']);
+        if (isset($headers['Host'])) {
+            unset($headers['Host']);
         }
 
         $options = ($async) ? ['future' => true] : [];

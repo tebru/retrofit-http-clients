@@ -149,6 +149,9 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
 
         $options = ($async) ? ['future' => true] : [];
 
-        return new Request($request->getMethod(), $uri, $headers, $body, $options);
+        $request = $this->client->createRequest($request->getMethod(), $uri, $options);
+        $request->setBody($body);
+
+        return $request;
     }
 }

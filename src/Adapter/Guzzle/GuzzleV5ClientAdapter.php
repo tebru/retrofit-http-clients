@@ -10,7 +10,6 @@ use Exception;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Message\Request;
 use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use GuzzleHttp\Ring\Future\FutureInterface;
 use GuzzleHttp\Stream\Stream;
@@ -35,9 +34,9 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     private $client;
 
     /**
-     * @var PromiseInterface[]
+     * @var FutureInterface[]
      */
-    private $promises = [];
+    private $responses = [];
 
     /**
      * Constructor
@@ -86,7 +85,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
         /** @var FutureInterface $response */
         $response = $this->client->send($request);
 
-        $this->promises[] = $response
+        $response
             ->then(
                 function (ResponseInterface $response) {
                     return new Psr7Response(
@@ -115,6 +114,8 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
                     $callback->onResponse($response);
                 }
             );
+
+        $this->responses[] = $response;
     }
 
     /**
@@ -124,8 +125,8 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
      */
     public function wait()
     {
-        foreach ($this->promises as $promise) {
-            $promise->wait();
+        foreach ($this->responses as $response) {
+            $response->wait();
         }
     }
 

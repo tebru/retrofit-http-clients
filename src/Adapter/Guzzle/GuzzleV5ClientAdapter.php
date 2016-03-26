@@ -152,7 +152,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
 
         $request = $this->client->createRequest($request->getMethod(), $uri, $options);
         $request->setBody($body);
-        $request->setHeaders($headers);
+        $request->setHeaders(array_merge($request->getHeaders(), $headers));
 
         return $request;
     }

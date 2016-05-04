@@ -12,9 +12,13 @@ use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Tebru;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
 use Tebru\Retrofit\Exception\RequestException;
+use Tebru\Retrofit\Event\AfterSendEvent;
+use Tebru\Retrofit\Event\ApiExceptionEvent;
+use Tebru\Retrofit\Event\EventDispatcherAware;
 use Tebru\Retrofit\Http\Callback;
 
 /**
@@ -24,7 +28,7 @@ use Tebru\Retrofit\Http\Callback;
  *
  * @author Nate Brunette <n@tebru.net>
  */
-class GuzzleV6ClientAdapter implements HttpClientAdapter
+class GuzzleV6ClientAdapter implements HttpClientAdapter, EventDispatcherAware
 {
     /**
      * @var ClientInterface
@@ -35,6 +39,11 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
      * @var PromiseInterface[]
      */
     private $promises = [];
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
 
     /**
      * Constructor
@@ -72,10 +81,14 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
         $this->promises[] = $this->client
             ->sendAsync($request)
             ->then(
-                function (ResponseInterface $response) use ($callback) {
+                function (ResponseInterface $response) use ($callback, $request) {
+                    if (null !== $this->eventDispatcher) {
+                        $this->eventDispatcher->dispatch(AfterSendEvent::NAME, new AfterSendEvent($request, $response));
+                    }
+
                     $callback->onResponse($response);
                 },
-                function (Exception $exception) use ($callback) {
+                function (Exception $exception) use ($callback, $request) {
                     /** @var \GuzzleHttp\Exception\RequestException $exception */
                     $requestException = new RequestException(
                         $exception->getMessage(),
@@ -85,6 +98,10 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
                         $exception->getResponse(),
                         $exception->getHandlerContext()
                     );
+
+                    if (null !== $this->eventDispatcher) {
+                        $this->eventDispatcher->dispatch(ApiExceptionEvent::NAME, new ApiExceptionEvent($requestException, $request));
+                    }
 
                     $callback->onFailure($requestException);
                 }
@@ -101,5 +118,15 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter
         foreach ($this->promises as $promise) {
             $promise->wait();
         }
+    }
+
+    /**
+     * Set the event dispatcher
+     *
+     * @param EventDispatcherInterface $eventDispatcher
+     */
+    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher)
+    {
+        $this->eventDispatcher = $eventDispatcher;
     }
 }

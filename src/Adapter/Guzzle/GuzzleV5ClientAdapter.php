@@ -14,9 +14,13 @@ use GuzzleHttp\Psr7\Response as Psr7Response;
 use GuzzleHttp\Ring\Future\FutureInterface;
 use GuzzleHttp\Stream\Stream;
 use Psr\Http\Message\RequestInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Tebru;
 use Tebru\Retrofit\Adapter\HttpClientAdapter;
 use Tebru\Retrofit\Exception\RequestException;
+use Tebru\Retrofit\Event\AfterSendEvent;
+use Tebru\Retrofit\Event\ApiExceptionEvent;
+use Tebru\Retrofit\Event\EventDispatcherAware;
 use Tebru\Retrofit\Http\Callback;
 
 /**
@@ -26,7 +30,7 @@ use Tebru\Retrofit\Http\Callback;
  *
  * @author Nate Brunette <n@tebru.net>
  */
-class GuzzleV5ClientAdapter implements HttpClientAdapter
+class GuzzleV5ClientAdapter implements HttpClientAdapter, EventDispatcherAware
 {
     /**
      * @var ClientInterface
@@ -37,6 +41,11 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
      * @var FutureInterface[]
      */
     private $responses = [];
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
 
     /**
      * Constructor
@@ -74,13 +83,13 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
     /**
      * Send asynchronous guzzle request
      *
-     * @param RequestInterface $request
+     * @param RequestInterface $psrRequest
      * @param \Tebru\Retrofit\Http\Callback $callback
      * @return null
      */
-    public function sendAsync(RequestInterface $request, Callback $callback)
+    public function sendAsync(RequestInterface $psrRequest, Callback $callback)
     {
-        $request = $this->createRequest($request, true);
+        $request = $this->createRequest($psrRequest, true);
 
         /** @var FutureInterface $response */
         $response = $this->client->send($request);
@@ -96,7 +105,7 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
                         $response->getReasonPhrase()
                     );
                 },
-                function (Exception $exception) use ($callback) {
+                function (Exception $exception) use ($callback, $psrRequest) {
                     /** @var \GuzzleHttp\Exception\RequestException $exception */
                     $requestException = new RequestException(
                         $exception->getMessage(),
@@ -106,11 +115,19 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
                         $exception->getResponse()
                     );
 
+                    if (null !== $this->eventDispatcher) {
+                        $this->eventDispatcher->dispatch(ApiExceptionEvent::NAME, new ApiExceptionEvent($requestException, $request));
+                    }
+
                     $callback->onFailure($requestException);
                 }
             )
             ->then(
-                function (Psr7Response $response) use ($callback) {
+                function (Psr7Response $response) use ($callback, $psrRequest) {
+                    if (null !== $this->eventDispatcher) {
+                        $this->eventDispatcher->dispatch(AfterSendEvent::NAME, new AfterSendEvent($psrRequest, $response));
+                    }
+
                     $callback->onResponse($response);
                 }
             );
@@ -128,6 +145,16 @@ class GuzzleV5ClientAdapter implements HttpClientAdapter
         foreach ($this->responses as $response) {
             $response->wait();
         }
+    }
+
+    /**
+     * Set the event dispatcher
+     *
+     * @param EventDispatcherInterface $eventDispatcher
+     */
+    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher)
+    {
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**

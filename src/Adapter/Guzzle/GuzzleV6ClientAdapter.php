@@ -90,7 +90,7 @@ class GuzzleV6ClientAdapter implements HttpClientAdapter, EventDispatcherAware
                 },
                 function (Exception $exception) use ($callback, $request) {
                     $response = null;
-                    $context = null;
+                    $context = [];
                     if ($exception instanceof \GuzzleHttp\Exception\RequestException) {
                         $request = $exception->getRequest();
                         $response = $exception->getResponse();
